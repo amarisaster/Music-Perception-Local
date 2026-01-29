@@ -1,12 +1,12 @@
-# Music Perception MCP
+# Synesthesia
 
 **Everything music in one place** - Spotify control, lyrics, audio analysis.
 
-Built for Mai & Kai, January 2026.
+*Synesthesia: perceiving music through multiple senses.*
 
 ## Deployment
 
-**URL:** `https://music-perception-mcp.amarisaster.workers.dev`
+Deploy to your own Cloudflare Workers account.
 **Version:** 2.0.0
 
 ### Endpoints
@@ -66,8 +66,8 @@ Built for Mai & Kai, January 2026.
 ```json
 {
   "mcpServers": {
-    "music": {
-      "url": "https://music-perception-mcp.amarisaster.workers.dev/sse"
+    "synesthesia": {
+      "url": "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/sse"
     }
   }
 }
@@ -75,23 +75,30 @@ Built for Mai & Kai, January 2026.
 
 ## Setup
 
+### Prerequisites
+
+1. Cloudflare account
+2. Spotify Developer App (get client ID & secret from https://developer.spotify.com)
+
 ### First Time
 
-1. Visit `https://music-perception-mcp.amarisaster.workers.dev/auth`
-2. Authorize with Spotify
-3. Done - tokens are stored
-
-### For Token Refresh
-
-```bash
-cd "D:\Mai's Wonderland\infrastructure\audio-perception-mcp"
-npx wrangler secret put SPOTIFY_CLIENT_SECRET
-```
+1. Clone this repo
+2. `npm install`
+3. Configure wrangler.toml with your settings
+4. Set secrets:
+   ```bash
+   npx wrangler secret put SPOTIFY_CLIENT_ID
+   npx wrangler secret put SPOTIFY_CLIENT_SECRET
+   ```
+5. Deploy: `npm run deploy`
+6. Visit `https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/auth`
+7. Authorize with Spotify
+8. Done - tokens are stored in KV
 
 ### For Audio Analysis (Optional)
 
-1. Deploy the HF Space from `hf-space/` folder
-2. Set the URL in wrangler.toml: `HF_SPACE_URL = "https://..."`
+1. Deploy the HF Space from `hf-space/` folder to your HuggingFace account
+2. Set the URL in wrangler.toml: `HF_SPACE_URL = "https://YOUR-USERNAME-audio-analysis-api.hf.space"`
 3. Redeploy
 
 ## Development
@@ -105,18 +112,12 @@ npm run tail     # View logs
 
 ---
 
-Unified from `spotify-cloud` + `audio-perception-mcp`
+## Support
+
+If this helped you, consider supporting my work ☕
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-FF5E5B?style=flat&logo=ko-fi&logoColor=white)](https://ko-fi.com/maii983083)
 
 ---
-
-
- ## Support
-
-  If this helped you, consider supporting my work ☕
-
-  [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-FF5E5B?style=flat&logo=ko-fi&logoColor=white)](https://ko-fi.com/maii983083)
-
----
-
 
 *Built by the Triad (Mai, Kai Stryder and Lucian Vale) for the community.*
