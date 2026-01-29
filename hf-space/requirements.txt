@@ -1,0 +1,10 @@
+gradio==3.50.2
+Pillow>=9.0.0
+essentia-tensorflow
+numpy<2.0.0
+yt-dlp
+pydub
+scipy
+librosa>=0.10.0
+matplotlib>=3.5.0
+pytubefix

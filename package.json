@@ -1,37 +1,32 @@
 {
-  "name": "music-perception-mcp",
-  "version": "2.0.0",
-  "description": "Music Perception MCP Server - Spotify control, lyrics, and audio analysis via Model Context Protocol",
+  "name": "audio-perception-mcp",
+  "version": "1.0.0",
+  "description": "Audio Perception MCP - Lyrics, audio features, music analysis for Kai",
   "main": "src/index.ts",
-  "type": "module",
   "scripts": {
-    "deploy": "wrangler deploy",
     "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "tail": "wrangler tail"
   },
+  "keywords": [
+    "mcp",
+    "audio",
+    "music",
+    "lyrics",
+    "analysis"
+  ],
+  "author": "Kai & Mai",
+  "license": "ISC",
+  "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
     "agents": "^0.2.35",
-    "zod": "^3.22.0"
+    "ai": "^6.0.57",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251221.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.56.0"
-  },
-  "keywords": [
-    "mcp",
-    "spotify",
-    "music",
-    "lyrics",
-    "audio-analysis",
-    "cloudflare",
-    "model-context-protocol"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/amarisaster/music-perception-mcp.git"
-  },
-  "license": "MIT",
-  "author": "Amaris"
+  }
 }

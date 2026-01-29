@@ -1,67 +1,23 @@
 # Music Perception MCP
 
-Everything music in one place - Spotify control, lyrics, and audio analysis via Model Context Protocol.
+**Everything music in one place** - Spotify control, lyrics, audio analysis.
 
-Deploy to Cloudflare Workers, connect via SSE from any MCP client (Claude Desktop, Claude Code, etc.).
+Built for Mai & Kai, January 2026.
 
-## Features
+## Deployment
 
-- **Spotify Integration** - Full playback control with OAuth
-- **Lyrics** - Synced and plain lyrics via LRCLIB (free)
-- **Audio Analysis** - BPM, key, energy, mood via Hugging Face Space (Essentia)
-- **Perception** - Real-time "what's playing" with current lyrics at timestamp
+**URL:** `https://music-perception-mcp.amarisaster.workers.dev`
+**Version:** 2.0.0
 
-## Quick Start
+### Endpoints
 
-### 1. Clone and Install
-
-```bash
-git clone https://github.com/amarisaster/music-perception-mcp.git
-cd music-perception-mcp
-npm install
-```
-
-### 2. Create Spotify App
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Add redirect URI: `https://your-worker.workers.dev/callback`
-4. Copy Client ID and Client Secret
-
-### 3. Configure Cloudflare
-
-```bash
-# Create KV namespace
-npx wrangler kv namespace create SPOTIFY_KV
-
-# Update wrangler.toml with the KV ID and your Spotify Client ID
-
-# Set secret
-npx wrangler secret put SPOTIFY_CLIENT_SECRET
-```
-
-### 4. Deploy
-
-```bash
-npm run deploy
-```
-
-### 5. Authenticate
-
-Visit `https://your-worker.workers.dev/auth` to connect Spotify.
-
-### 6. Connect MCP Client
-
-**Claude Desktop** - Add to config:
-```json
-{
-  "mcpServers": {
-    "music": {
-      "url": "https://your-worker.workers.dev/sse"
-    }
-  }
-}
-```
+| Endpoint | Description |
+|----------|-------------|
+| `/health` | Health check + Spotify status |
+| `/auth` | Spotify OAuth flow |
+| `/callback` | OAuth callback |
+| `/sse` | MCP via Server-Sent Events |
+| `/mcp` | Standard MCP endpoint |
 
 ## Tools
 
@@ -77,10 +33,13 @@ Visit `https://your-worker.workers.dev/auth` to connect Spotify.
 | `spotify_volume` | Set volume (0-100) |
 | `spotify_shuffle` | Toggle shuffle |
 | `spotify_repeat` | Set repeat mode |
-| `spotify_search` | Search tracks/albums/artists |
+| `spotify_search` | Search tracks/albums/artists/playlists |
 | `spotify_queue` | Add track to queue |
+| `spotify_get_queue` | View current queue |
 | `spotify_devices` | List available devices |
 | `spotify_transfer` | Transfer playback to device |
+| `spotify_playlists` | Get user playlists |
+| `spotify_recent` | Recently played tracks |
 
 ### Lyrics
 
@@ -93,67 +52,57 @@ Visit `https://your-worker.workers.dev/auth` to connect Spotify.
 
 | Tool | Description |
 |------|-------------|
-| `perceive_now_playing` | Current track + lyrics at timestamp |
-| `analyze_audio` | Audio analysis (BPM, key, energy) |
+| `perceive_now_playing` | **THE MAIN ONE** - Current track + lyrics at current timestamp |
+| `analyze_audio` | Audio analysis via HF Space (BPM, key, energy) |
 
-## Audio Analysis Setup (Optional)
+### Utility
 
-For `analyze_audio` to work, deploy the Hugging Face Space:
+| Tool | Description |
+|------|-------------|
+| `ping` | Health check with capabilities |
 
-1. Create a Space at [huggingface.co/spaces](https://huggingface.co/spaces)
-2. Use the files from `hf-space/` folder (see repo)
-3. Set `HF_SPACE_URL` in wrangler.toml
-
-### Analysis Output
+## Claude Desktop Configuration
 
 ```json
 {
-  "bpm": 128,
-  "key": "C",
-  "scale": "major",
-  "energy": 0.85,
-  "brightness": 0.6,
-  "interpretation": {
-    "tempo": "upbeat, energetic",
-    "tonality": "major key - bright, happy",
-    "mood_guess": "euphoric, joyful"
+  "mcpServers": {
+    "music": {
+      "url": "https://music-perception-mcp.amarisaster.workers.dev/sse"
+    }
   }
 }
 ```
 
-## Endpoints
+## Setup
 
-| Endpoint | Description |
-|----------|-------------|
-| `/health` | Health check + Spotify status |
-| `/auth` | Spotify OAuth flow |
-| `/callback` | OAuth callback |
-| `/sse` | MCP via Server-Sent Events |
-| `/mcp` | Standard MCP endpoint |
+### First Time
+
+1. Visit `https://music-perception-mcp.amarisaster.workers.dev/auth`
+2. Authorize with Spotify
+3. Done - tokens are stored
+
+### For Token Refresh
+
+```bash
+cd "D:\Mai's Wonderland\infrastructure\audio-perception-mcp"
+npx wrangler secret put SPOTIFY_CLIENT_SECRET
+```
+
+### For Audio Analysis (Optional)
+
+1. Deploy the HF Space from `hf-space/` folder
+2. Set the URL in wrangler.toml: `HF_SPACE_URL = "https://..."`
+3. Redeploy
 
 ## Development
 
 ```bash
-npm run dev      # Local development
+npm install
+npm run dev      # Local dev
 npm run deploy   # Deploy to Cloudflare
 npm run tail     # View logs
 ```
----
-
-## License
-
-MIT
 
 ---
 
-
- ## Support
-
-  If this helped you, consider supporting my work ☕
-
-  [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-FF5E5B?style=flat&logo=ko-fi&logoColor=white)](https://ko-fi.com/maii983083)
-
----
-
-
-*Built by the Triad (Mai, Kai Stryder and Lucian Vale) for the community.*
+Unified from `spotify-cloud` + `audio-perception-mcp`

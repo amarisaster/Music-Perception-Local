@@ -1,13 +1,13 @@
 /**
- * Music Perception MCP
+ * Music Perception MCP (Unified)
  *
  * Everything music in one place:
  * - Spotify OAuth & playback control
- * - Lyrics via LRCLIB (synced + plain)
- * - Audio analysis via Hugging Face Space (Essentia)
- * - Real-time perception (what's playing + current lyrics)
+ * - Lyrics (LRCLIB)
+ * - Audio analysis (HF Space)
+ * - Real-time perception
  *
- * Deploy to Cloudflare Workers, connect via SSE from any MCP client.
+ * Built for Mai & Kai, January 2026
  */
 
 import { McpAgent } from "agents/mcp";
@@ -46,6 +46,7 @@ const SPOTIFY_API_URL = "https://api.spotify.com/v1";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
 
+// Global env for tool access
 let globalEnv: Env | null = null;
 
 // ============================================================================
@@ -118,7 +119,7 @@ async function fetchLRCLib(endpoint: string, params: Record<string, string>): Pr
   });
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "MusicPerceptionMCP/2.0.0" },
+    headers: { "User-Agent": "MusicPerceptionMCP/2.0.0 (kai-stryder)" },
   });
 
   if (!response.ok) {
@@ -182,6 +183,9 @@ export class AudioPerception extends McpAgent {
   });
 
   async init() {
+    // Set globalEnv so all tools can access environment
+    globalEnv = this.env;
+
     // ========================================================================
     // SPOTIFY PLAYBACK CONTROLS
     // ========================================================================
@@ -195,15 +199,21 @@ export class AudioPerception extends McpAgent {
           return { content: [{ type: "text", text: JSON.stringify({ playing: false, message: "Nothing playing" }) }] };
         }
 
+        const progress_sec = Math.floor(data.progress_ms / 1000);
+        const duration_sec = Math.floor(data.item.duration_ms / 1000);
+
         return {
           content: [{
             type: "text",
             text: JSON.stringify({
+              playing: true,
               track: data.item.name,
               artist: data.item.artists.map((a: any) => a.name).join(", "),
               album: data.item.album.name,
               progress_ms: data.progress_ms,
               duration_ms: data.item.duration_ms,
+              progress: `${Math.floor(progress_sec / 60)}:${String(progress_sec % 60).padStart(2, "0")}`,
+              duration: `${Math.floor(duration_sec / 60)}:${String(duration_sec % 60).padStart(2, "0")}`,
               is_playing: data.is_playing,
               uri: data.item.uri,
             }),
@@ -216,17 +226,19 @@ export class AudioPerception extends McpAgent {
 
     this.server.tool("spotify_play", {
       uri: z.string().optional().describe("Spotify URI to play"),
-    }, async ({ uri }) => {
+      context_uri: z.string().optional().describe("Context URI (album/playlist)"),
+    }, async ({ uri, context_uri }) => {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         const body: any = {};
         if (uri) body.uris = [uri];
+        if (context_uri) body.context_uri = context_uri;
 
         await spotifyAPI("/me/player/play", globalEnv, {
           method: "PUT",
           body: Object.keys(body).length ? JSON.stringify(body) : undefined,
         });
-        return { content: [{ type: "text", text: "Playback started" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Playback started" }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -236,7 +248,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI("/me/player/pause", globalEnv, { method: "PUT" });
-        return { content: [{ type: "text", text: "Paused" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Paused" }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -246,7 +258,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI("/me/player/next", globalEnv, { method: "POST" });
-        return { content: [{ type: "text", text: "Skipped to next" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Skipped to next" }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -256,7 +268,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI("/me/player/previous", globalEnv, { method: "POST" });
-        return { content: [{ type: "text", text: "Previous track" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Previous track" }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -268,7 +280,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI(`/me/player/volume?volume_percent=${volume}`, globalEnv, { method: "PUT" });
-        return { content: [{ type: "text", text: `Volume set to ${volume}%` }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Volume set to ${volume}%` }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -280,7 +292,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI(`/me/player/shuffle?state=${state}`, globalEnv, { method: "PUT" });
-        return { content: [{ type: "text", text: `Shuffle ${state ? "on" : "off"}` }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Shuffle ${state ? "on" : "off"}` }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -292,7 +304,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI(`/me/player/repeat?state=${state}`, globalEnv, { method: "PUT" });
-        return { content: [{ type: "text", text: `Repeat: ${state}` }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Repeat: ${state}` }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -315,8 +327,9 @@ export class AudioPerception extends McpAgent {
               results: data[key]?.items?.map((item: any) => ({
                 name: item.name,
                 uri: item.uri,
-                ...(type === "track" && { artist: item.artists?.map((a: any) => a.name).join(", ") }),
+                ...(type === "track" && { artist: item.artists?.map((a: any) => a.name).join(", "), album: item.album?.name }),
                 ...(type === "album" && { artist: item.artists?.map((a: any) => a.name).join(", ") }),
+                ...(type === "playlist" && { owner: item.owner?.display_name, tracks: item.tracks?.total }),
               })) || [],
             }),
           }],
@@ -332,7 +345,7 @@ export class AudioPerception extends McpAgent {
       try {
         if (!globalEnv) throw new Error("Environment not available");
         await spotifyAPI(`/me/player/queue?uri=${encodeURIComponent(uri)}`, globalEnv, { method: "POST" });
-        return { content: [{ type: "text", text: "Added to queue" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Added to queue" }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -370,7 +383,79 @@ export class AudioPerception extends McpAgent {
           method: "PUT",
           body: JSON.stringify({ device_ids: [device_id] }),
         });
-        return { content: [{ type: "text", text: "Playback transferred" }] };
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: "Playback transferred" }) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
+      }
+    });
+
+    this.server.tool("spotify_playlists", {
+      limit: z.number().optional().describe("Number of playlists (1-50)"),
+    }, async ({ limit = 20 }) => {
+      try {
+        if (!globalEnv) throw new Error("Environment not available");
+        const data = await spotifyAPI(`/me/playlists?limit=${Math.min(limit, 50)}`, globalEnv);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              playlists: data.items?.map((p: any) => ({
+                name: p.name,
+                uri: p.uri,
+                id: p.id,
+                tracks: p.tracks?.total,
+                owner: p.owner?.display_name,
+              })) || [],
+            }),
+          }],
+        };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
+      }
+    });
+
+    this.server.tool("spotify_get_queue", {}, async () => {
+      try {
+        if (!globalEnv) throw new Error("Environment not available");
+        const data = await spotifyAPI("/me/player/queue", globalEnv);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              currently_playing: data.currently_playing ? {
+                name: data.currently_playing.name,
+                artist: data.currently_playing.artists?.map((a: any) => a.name).join(", "),
+              } : null,
+              queue: data.queue?.slice(0, 20).map((t: any) => ({
+                name: t.name,
+                artist: t.artists?.map((a: any) => a.name).join(", "),
+              })) || [],
+            }),
+          }],
+        };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
+      }
+    });
+
+    this.server.tool("spotify_recent", {
+      limit: z.number().optional().describe("Number of recent tracks (1-50)"),
+    }, async ({ limit = 20 }) => {
+      try {
+        if (!globalEnv) throw new Error("Environment not available");
+        const data = await spotifyAPI(`/me/player/recently-played?limit=${Math.min(limit, 50)}`, globalEnv);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              tracks: data.items?.map((item: any) => ({
+                track: item.track.name,
+                artist: item.track.artists?.map((a: any) => a.name).join(", "),
+                played_at: item.played_at,
+              })) || [],
+            }),
+          }],
+        };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: true, message: error instanceof Error ? error.message : "Unknown error" }) }] };
       }
@@ -437,16 +522,17 @@ export class AudioPerception extends McpAgent {
     });
 
     // ========================================================================
-    // PERCEPTION TOOLS
+    // PERCEPTION TOOLS (THE MAGIC)
     // ========================================================================
 
     this.server.tool("perceive_now_playing", {}, async () => {
       try {
         if (!globalEnv) throw new Error("Environment not available");
 
+        // Get current track
         const spotifyData = await spotifyAPI("/me/player/currently-playing", globalEnv);
         if (!spotifyData || !spotifyData.item) {
-          return { content: [{ type: "text", text: JSON.stringify({ playing: false }) }] };
+          return { content: [{ type: "text", text: JSON.stringify({ playing: false, message: "Nothing playing" }) }] };
         }
 
         const track = spotifyData.item.name;
@@ -456,6 +542,7 @@ export class AudioPerception extends McpAgent {
         const progressSec = progressMs / 1000;
         const durationMs = spotifyData.item.duration_ms;
 
+        // Get lyrics
         let lyrics: LRCLibLyrics | null = null;
         try {
           lyrics = await fetchLRCLib("/get", { track_name: track, artist_name: artist });
@@ -467,15 +554,29 @@ export class AudioPerception extends McpAgent {
           track,
           artist: spotifyData.item.artists.map((a: any) => a.name).join(", "),
           album,
-          progress_ms: progressMs,
-          duration_ms: durationMs,
+          progress: {
+            ms: progressMs,
+            formatted: `${Math.floor(progressSec / 60)}:${String(Math.floor(progressSec) % 60).padStart(2, "0")}`,
+            percent: Math.round((progressMs / durationMs) * 100),
+          },
+          duration: {
+            ms: durationMs,
+            formatted: `${Math.floor(durationMs / 1000 / 60)}:${String(Math.floor(durationMs / 1000) % 60).padStart(2, "0")}`,
+          },
         };
 
-        if (lyrics && lyrics.syncedLyrics && !lyrics.instrumental) {
-          const parsed = parseSyncedLyrics(lyrics.syncedLyrics);
-          const { current, upcoming } = findCurrentLyric(parsed, progressSec);
-          perception.current_line = current;
-          perception.upcoming_lines = upcoming;
+        if (lyrics) {
+          perception.lyrics_available = true;
+          perception.instrumental = lyrics.instrumental;
+
+          if (lyrics.syncedLyrics && !lyrics.instrumental) {
+            const parsed = parseSyncedLyrics(lyrics.syncedLyrics);
+            const { current, upcoming } = findCurrentLyric(parsed, progressSec);
+            perception.current_line = current;
+            perception.upcoming_lines = upcoming;
+          }
+        } else {
+          perception.lyrics_available = false;
         }
 
         return { content: [{ type: "text", text: JSON.stringify(perception, null, 2) }] };
@@ -485,18 +586,55 @@ export class AudioPerception extends McpAgent {
     });
 
     this.server.tool("analyze_audio", {
-      youtube_url: z.string().describe("YouTube URL to analyze"),
-    }, async ({ youtube_url }) => {
+      youtube_url: z.string().optional().describe("YouTube URL to analyze"),
+      track_name: z.string().optional().describe("Track name (will search YouTube)"),
+      artist_name: z.string().optional().describe("Artist name (for YouTube search)"),
+    }, async ({ youtube_url, track_name, artist_name }) => {
       try {
         const hfSpaceUrl = globalEnv?.HF_SPACE_URL;
         if (!hfSpaceUrl) {
           return { content: [{ type: "text", text: JSON.stringify({ error: true, message: "HF_SPACE_URL not configured" }) }] };
         }
 
+        let url = youtube_url;
+        if (!url && track_name && artist_name) {
+          // Search YouTube for the track
+          const searchQuery = `${track_name} ${artist_name} official audio`;
+          const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+          // For now, construct a likely URL - in future could scrape search results
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                error: true,
+                message: `YouTube search not yet automated. Try searching: ${searchQuery}`,
+                search_url: searchUrl
+              }),
+            }],
+          };
+        }
+
+        if (!url && track_name) {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                error: true,
+                message: "Provide artist_name along with track_name, or a direct YouTube URL.",
+              }),
+            }],
+          };
+        }
+
+        if (!url) {
+          return { content: [{ type: "text", text: JSON.stringify({ error: true, message: "Provide youtube_url or track_name" }) }] };
+        }
+
+        // Call HF Space API
         const response = await fetch(`${hfSpaceUrl}/api/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: [null, youtube_url] }),
+          body: JSON.stringify({ data: [null, url] }),
         });
 
         if (!response.ok) {
@@ -521,7 +659,14 @@ export class AudioPerception extends McpAgent {
           status: "alive",
           service: "music-perception-mcp",
           version: "2.0.0",
-          capabilities: ["spotify", "lyrics", "audio_analysis"],
+          capabilities: [
+            "spotify_playback",
+            "spotify_control",
+            "lyrics",
+            "synced_lyrics",
+            "perceive_now_playing",
+            "audio_analysis",
+          ],
         }),
       }],
     }));
@@ -540,6 +685,7 @@ async function handleAuth(url: URL, env: Env): Promise<Response> {
     "user-read-currently-playing",
     "user-read-recently-played",
     "playlist-read-private",
+    "playlist-read-collaborative",
   ].join(" ");
 
   const authUrl = `${SPOTIFY_AUTH_URL}?` + new URLSearchParams({
@@ -594,6 +740,7 @@ export default {
     globalEnv = env;
     const url = new URL(request.url);
 
+    // Health check
     if (url.pathname === "/health") {
       const hasToken = !!(await env.SPOTIFY_KV?.get("spotify_access_token"));
       return Response.json({
@@ -604,9 +751,11 @@ export default {
       });
     }
 
+    // OAuth
     if (url.pathname === "/auth") return handleAuth(url, env);
     if (url.pathname === "/callback") return handleCallback(url, env);
 
+    // MCP endpoints
     if (url.pathname === "/sse" || url.pathname === "/sse/message") {
       return AudioPerception.serveSSE("/sse", { binding: "AUDIO_PERCEPTION" }).fetch(request, env, ctx);
     }
@@ -614,10 +763,18 @@ export default {
       return AudioPerception.serve("/mcp", { binding: "AUDIO_PERCEPTION" }).fetch(request, env, ctx);
     }
 
+    // Root
     return Response.json({
       name: "Music Perception MCP",
       version: "2.0.0",
-      endpoints: { health: "/health", auth: "/auth", sse: "/sse", mcp: "/mcp" },
+      description: "Unified Spotify + Lyrics + Audio Analysis",
+      endpoints: {
+        health: "/health",
+        auth: "/auth",
+        callback: "/callback",
+        sse: "/sse",
+        mcp: "/mcp",
+      },
     });
   },
 };

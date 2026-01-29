@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "music": {
+      "url": "https://music-perception-mcp.amarisaster.workers.dev/sse"
+    }
+  }
+}

@@ -3,6 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Durable Objects for MCP state
 [[durable_objects.bindings]]
 name = "AUDIO_PERCEPTION"
 class_name = "AudioPerception"
@@ -11,14 +12,14 @@ class_name = "AudioPerception"
 tag = "v1"
 new_sqlite_classes = ["AudioPerception"]
 
-# KV namespace for Spotify tokens
+# Share KV namespace with Spotify MCP for auth tokens
 [[kv_namespaces]]
 binding = "SPOTIFY_KV"
-id = "YOUR_KV_NAMESPACE_ID"  # Create via: npx wrangler kv namespace create SPOTIFY_KV
+id = "dc50213c7139477b898bbc0dbf31d852"
 
 [vars]
-SPOTIFY_CLIENT_ID = "YOUR_SPOTIFY_CLIENT_ID"
-# HF_SPACE_URL = "https://your-username-audio-analysis-api.hf.space"
+SPOTIFY_CLIENT_ID = "a1cc34fd068a4bd7a3a8052439d01e49"
+HF_SPACE_URL = "https://itsamaris-audio-analysis-api.hf.space"
 
-# Secrets (set via wrangler secret put):
-# - SPOTIFY_CLIENT_SECRET
+# Secrets (must be set via wrangler secret put):
+# SPOTIFY_CLIENT_SECRET
