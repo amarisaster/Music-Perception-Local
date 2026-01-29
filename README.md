@@ -1,8 +1,8 @@
-# Synesthesia
+# Tempo
 
-**Everything music in one place** - Spotify control, lyrics, audio analysis.
+**Spotify control + lyrics** - Playback control, queue management, synced lyrics via MCP.
 
-*Synesthesia: perceiving music through multiple senses.*
+*Keep the rhythm going.*
 
 ## Deployment
 
@@ -66,7 +66,7 @@ Deploy to your own Cloudflare Workers account.
 ```json
 {
   "mcpServers": {
-    "synesthesia": {
+    "tempo": {
       "url": "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/sse"
     }
   }
@@ -97,9 +97,7 @@ Deploy to your own Cloudflare Workers account.
 
 ### For Audio Analysis (Optional)
 
-1. Deploy the HF Space from `hf-space/` folder to your HuggingFace account
-2. Set the URL in wrangler.toml: `HF_SPACE_URL = "https://YOUR-USERNAME-audio-analysis-api.hf.space"`
-3. Redeploy
+For deep audio analysis (BPM, mood, spectrogram), use [Synesthesia](https://github.com/amarisaster/Synesthesia) - the local companion MCP.
 
 ## Development
 
