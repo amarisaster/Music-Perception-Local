@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "music": {
-      "url": "https://music-perception-mcp.amarisaster.workers.dev/sse"
+      "url": "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev/sse"
     }
   }
 }
